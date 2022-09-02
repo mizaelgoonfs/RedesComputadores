@@ -88,7 +88,7 @@ while(True):
             # checksum = message[:2]
             # ack_seq = message[5]
             # if ip_checksum(message[2:]) == checksum and ack_seq == str(seq):
-            #     
+                 
             if (mensagem == str(seq)):
                 print("Cliente02 recebeu =", mensagem,", do cliente", ip_servidor)
                 print("Ack", mensagem, "recebido, pronto para enviar a proxima mensagem\n")
