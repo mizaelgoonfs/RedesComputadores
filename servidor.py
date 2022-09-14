@@ -1,11 +1,15 @@
 from socket import *
 import time
+import random
 
-def descarta_ack(msg, n):
-    if n < 6 and len(msg) == 1:
-        return True
-    else:
-        return True
+def corrupt(pkt):
+    index = random.randint(0, len(pkt) - 1)
+    var = str(chr(random.randint(0, 95)))
+    if(var == '0' or var == '1'):
+        var = '#'
+    pkt = pkt[:index] + var.encode() + pkt[index + 1:]
+    return pkt
+
 
 def manipulador(opt, mensagem, servidor_UDP, cliente_destino, ip_cliente):
     if opt == 1:
@@ -13,11 +17,13 @@ def manipulador(opt, mensagem, servidor_UDP, cliente_destino, ip_cliente):
         time.sleep(3)
         return
     elif opt == 2:
-        #opção para corromper o pacote e causar erro de checksum
-        corromper = "Função para corromper"
-    
-    print ("Servidor recebeu =",mensagem.decode("utf-8"),", do cliente", ip_cliente)
-    print("Servidor enviou =",mensagem.decode("utf-8"),", para o cliente", cliente_destino)
+        # opção para corromper o pacote e causar erro de checksum ou ack corrompido
+        mensagem = corrupt(mensagem)
+        servidor_UDP.sendto(mensagem, cliente_destino)
+        return
+
+    print("Servidor recebeu =", mensagem.decode("utf-8"), ", do cliente", ip_cliente)
+    print("Servidor enviou =", mensagem.decode("utf-8"), ", para o cliente", cliente_destino)
     servidor_UDP.sendto(mensagem, cliente_destino)
 
 
@@ -31,37 +37,41 @@ destino_cliente02 = ('127.0.0.1', 4000)
 
 Receptor_Cliente01_Sock = socket(AF_INET, SOCK_DGRAM)
 Receptor_Cliente01_Sock.bind(receptor_cliente01)
-Receptor_Cliente01_Sock.setblocking(0)
+Receptor_Cliente01_Sock.setblocking(False)
 Receptor_Cliente02_Sock = socket(AF_INET, SOCK_DGRAM)
 Receptor_Cliente02_Sock.bind(receptor_cliente02)
-Receptor_Cliente02_Sock.setblocking(0)
+Receptor_Cliente02_Sock.setblocking(False)
 
-#numero_de_acks = 0
-alterador_opcao_cliente01 = True
-while(True):
+while True:
     try:
         mensagem_recebida_c, ip_cliente = Receptor_Cliente01_Sock.recvfrom(1024)
-        mensagem_recebida = mensagem_recebida_c.decode("utf-8")
-        mensagem = mensagem_recebida[17:]
 
-        if(alterador_opcao_cliente01):
+        rand = random.randint(1, 20)
+        if 1 <= rand <= 5:
             opt = 0
-            alterador_opcao_cliente01 = False
-        else:
+        elif 6 <= rand <= 15:
             opt = 1
-            alterador_opcao_cliente01 = True
+        elif 16 <= rand <= 20:
+            opt = 2
+
+        print("\nOPÇÃO CLIENTE 1 -> 2: ", opt)
         manipulador(opt, mensagem_recebida_c, servidor_UDP, destino_cliente02, ip_cliente)
+
     except error:
         pass
 
     try:
         mensagem_recebida_c, ip_cliente = Receptor_Cliente02_Sock.recvfrom(1024)
-        mensagem_recebida = mensagem_recebida_c.decode("utf-8")
-        mensagem = mensagem_recebida[17:]
 
-        opt = 0
+        rand = random.randint(1, 20)
+        if 1 <= rand <= 15:
+            opt = 0
+        elif 16 <= rand <= 20:
+            opt = 2
+
+        print("\nOPÇÃO CLIENTE 2 -> 1: ", opt)
         manipulador(opt, mensagem_recebida_c, servidor_UDP, destino_cliente01, ip_cliente)
     except error:
         pass
 
-servidor_UDP.close() # Fechamento do socket.
+servidor_UDP.close()  # Fechamento do socket.
